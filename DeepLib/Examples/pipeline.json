@@ -1,0 +1,35 @@
+{
+    "elements" : [
+        {
+            "id": "1",
+            "type": "file-input",
+            "properties" : {
+                "path": "/tmp/sample_720p.h264"
+            }            
+        },
+        {
+            "id": "2",
+            "type": "nv-infer",
+            "properties" : {
+                "path": "dstest1_pgie_config.txt"
+            },
+            "links": {
+                "in" : "1/out"
+            }
+        },
+        {
+            "id": "3",
+            "type": "nv-osd",
+            "links": {
+                "in" : "2/out"
+            }
+        },
+        {
+            "id": "4",
+            "type": "egl-output",
+            "links": {
+                "in" : "3/out"
+            }
+        }
+    ]
+}

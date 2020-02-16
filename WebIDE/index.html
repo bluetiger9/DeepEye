@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.rawgit.com/balzss/luxbar/ae5835e2/build/luxbar.min.css">
+
+    <meta charset="UTF-8">
+    <title>Deep Eye (Web IDE)</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete@1.4.3-rc.1/build/rete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-vue-render-plugin@0.5.0/build/vue-render-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-connection-plugin@0.9.0/build/connection-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-context-menu-plugin@0.5.2/build/context-menu-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-area-plugin@0.2.1/build/area-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-comment-plugin@0.6.1/build/comment-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-history-plugin@0.2.1/build/history-plugin.common.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rete-connection-mastery-plugin@0.2.3/build/connection-mastery-plugin.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="luxbar luxbar-static">
+    <input type="checkbox" id="luxbar-checkbox" class="luxbar-checkbox">
+    <div class="luxbar-menu luxbar-menu-right luxbar-menu-dark">
+        <ul class="luxbar-navigation">
+            <li class="luxbar-header">
+                <a class="luxbar-brand" href="#">Deep Eye<sup>Web IDE</sup></a>
+                - NVIDIA DeepStream based Video Analytics
+                <label class="luxbar-hamburger luxbar-hamburger-doublespin"
+                        for="luxbar-checkbox"> <span></span> </label>
+            </li>
+            <li id="pipeline-editor-li" class="luxbar-item active" onclick="onPipelineEditorSelected()"><a href="#">Pipeline Editor</a></li>
+            <li id="video-preview-li" class="luxbar-item" onclick="onVideoPreviewSelected()"><a href="#">Video Preview</a></li>
+        </ul>
+    </div>
+</div>
+
+<div id="pipeline-editor"> 
+    <div class="ide-buttons">
+        <button class="ide-button" id="button-export" onClick="exportPipeline()">Export as JSON Pipeline Config</button>
+        <button class="ide-button" id="button-reset" onClick="resetPipeline()">Reset Pipeline</button>
+    </div>
+</div>
+
+<div id="video-preview" style="visibility: hidden;">
+    <div class="video-div">
+        Video Preview: <input type="text" id="video-uri-1"/><br/>
+        <video id="video-12"> 
+            <source src="http://192.168.0.123:8888"></source>
+        </video>
+    </div>
+    <div class="video-div">
+        Video Preview: <input type="text" id="video-uri-2"/><br/>
+        <video id="video-2">
+            <source></source>       
+        </video>
+    </div>
+</div>
+
+<script src="utils.js"></script>
+<script src="pipeline-editor.js"></script>
+<script src="video-preview.js"></script>
+<script src="web-ide.js"></script>
+
+</body>
+
+</html>
