@@ -21,6 +21,7 @@ def main(args):
         .withEGLOutput() \
         .build()
 
+    #.withEGLOutput() \
     # run on the main thread
     DeepLib.runOnMain(pipeline)
 

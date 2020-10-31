@@ -1,20 +1,14 @@
 ## Copyright (c) 2020 Attila Tőkés (tokes_atti@yahoo.com). All rights reserved.
 ## Licence: MIT
 
-DEFAUL_DEEPSTREAM_PYTHON_LIB_PATH = '/opt/nvidia/deepstream/deepstream-4.0/sources/python/apps/'
-
-import sys
-sys.path.append(DEFAUL_DEEPSTREAM_PYTHON_LIB_PATH)
-
 import gi
 gi.require_version('Gst', '1.0')
 
 from gi.repository import GObject, Gst
-from common.is_aarch_64 import is_aarch64
-from common.bus_call import bus_call
 
 from PipelineBuilder import *
 from JsonPipelineConfigLoader import *
+from Platform import *
 
 class DeepLib():
     def __init__(self):
@@ -22,18 +16,39 @@ class DeepLib():
         GObject.threads_init()
         Gst.init(None)
         pass
-    
+
     @staticmethod
     def init():
         DeepLib.instance = DeepLib()
-   
+        DeepLib.instance.platform = Platform.create()
+        print("Platform: " + str(DeepLib.instance.platform))
+
+    @staticmethod
+    def platform():
+        return DeepLib.instance.platform
+
     @staticmethod
     def pipeline():
         return PipelineBuilder(DeepLib.instance)
-    
+
     @staticmethod
     def pipelineFromJsonConfig(path):
         return JsonPipelineConfigLoader(DeepLib.instance).loadFromFile(path)
+
+    @staticmethod
+    def gstCallback(bus, message, loop):
+        t = message.type
+        if t == Gst.MessageType.EOS:
+            sys.stdout.write("End-of-stream\n")
+            loop.quit()
+        elif t==Gst.MessageType.WARNING:
+            err, debug = message.parse_warning()
+            sys.stderr.write("Warning: %s: %s\n" % (err, debug))
+        elif t == Gst.MessageType.ERROR:
+            err, debug = message.parse_error()
+            sys.stderr.write("Error: %s: %s\n" % (err, debug))
+            loop.quit()
+        return True
 
     @staticmethod
     def runOnMain(pipeline):
@@ -41,8 +56,8 @@ class DeepLib():
         loop = GObject.MainLoop()
         bus = pipeline.get_bus()
         bus.add_signal_watch()
-        bus.connect ("message", bus_call, loop)
-    
+        bus.connect ("message", DeepLib.gstCallback, loop)
+
         # start play back and listen to events
         print("Starting pipeline \n")
         pipeline.set_state(Gst.State.PLAYING)

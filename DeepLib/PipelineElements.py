@@ -4,10 +4,18 @@
 from DeepLib import *
 from GstElementFactory import *
 from RTSPUtils import *
-from NvOsd import *
-import configparser
 
 class PipelineElement:
+    ELEMENT_TYPE_H264_DECODE = "h264decode"
+    ELEMENT_TYPE_H264_ENCODE = "h264encode"
+    ELEMENT_TYPE_CAPS_FILTER_I420_RAW = "capsfilterI420raw"
+    ELEMENT_TYPE_CAPS_FILTER_NV12_720P = "capsfilterNV12p720"
+    ELEMENT_TYPE_VIDEO_CONVERT = "videoconvert"
+    ELEMENT_TYPE_STREAM_MUX = "streammux"
+    ELEMENT_TYPE_CAMERA_SOURCE = "camsource"
+    ELEMENT_TYPE_GL_SINK = "glsink"
+    ELEMENT_TYPE_GL_TRANSFORM = "gltransform"
+
     _autoNr = 1
 
     @staticmethod
@@ -25,11 +33,11 @@ class PipelineElement:
         self.gstElementsById = dict()
         self.lastElement = None
         self.linkTo = linkTo
-    
+
     def add(self, element, gstSourcePad = None, gstSinkPad = None, gstProbes = None, id = None, linkTo = None):
         if not id:
             id = PipelineElement.autoNr() + "-gst-" + type(element).__name__
-        
+
         if not linkTo:
             linkTo = self.lastElement
 
@@ -45,7 +53,7 @@ class PipelineElement:
         self.gstElements.append(component)
         self.gstElementsById[id] = component
         self.lastElement = id
-        
+
     def addMultiple(self, *elements):
         for element in elements:
             self.add(element)
@@ -64,95 +72,84 @@ class ProcessingElement(PipelineElement):
 
 # Input Elements
 class FileInput(InputElement):
-    def __init__(self, path, encoding = "H264", id = None, linkTo = None):
+    def __init__(self, platform, path, encoding = "H264", id = None, linkTo = None):
         InputElement.__init__(self, id, linkTo)
 
         source = GstElementFactory.element("filesrc", { 'location' : path } )
 
         if encoding is "H264":
             parser = GstElementFactory.element("h264parse")
-            decoder = GstElementFactory.element("nvv4l2decoder")
+            decoder = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_DECODE)
 
         else:
             raise error(f"Unkown encoding {encoding}")
 
-        streammux = GstElementFactory.element( \
-            "nvstreammux", \
-            {
-                'width' : 1920,
-                'height': 1080,
-                'batch-size' : 1,
-                'batched-push-timeout' : 4000000
-            } \
-        )
-        
+        streammux = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_STREAM_MUX)
+
         self.addMultiple(source, parser, decoder)
-        self.add(streammux, gstSinkPad='sink_0')
+
+        if streammux:
+            self.add(streammux, gstSinkPad='sink_0')
+
+        else:
+            queue = GstElementFactory.element("queue")
+            self.add(queue)
 
 
 class MipiCameraInput(InputElement):
-    def __init__(self, id = None, linkTo = None):
+    def __init__(self, platform, id = None, linkTo = None):
         InputElement.__init__(self, id, linkTo)
 
-        nvcam = GstElementFactory.element("nvarguscamerasrc")
-        
-        capsFilter = GstElementFactory.capsFilter( \
-            "video/x-raw(memory:NVMM), format=NV12, width=1280 height=720 framerate=30/1")
-        
-        self.addMultiple(nvcam, capsFilter)
+        cam = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_CAMERA_SOURCE)
+
+        capsFilter = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_CAPS_FILTER_NV12_720p)
+
+        self.addMultiple(cam, capsFilter)
 
 class USBCameraInput(InputElement):
-    def __init__(self, device = '/dev/video1', id = None, linkTo = None):        
+    def __init__(self, platform, device = '/dev/video1', id = None, linkTo = None):
         InputElement.__init__(self, id, linkTo)
 
         # note: tested with Logitech C920
         v4l2src = GstElementFactory.element("v4l2src", { 'device' : device } )
 
-        #queue = GstElementFactory.element("queue")
         capsFilter = GstElementFactory.capsFilter( \
             "video/x-h264, width=1280, height=720, framerate=30/1")
         h264parse = GstElementFactory.element("h264parse")
-        h264decode = GstElementFactory.element("nvv4l2decoder")
+        h264decode = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_DECODE)
 
         self.addMultiple(v4l2src, capsFilter, h264parse, h264decode)
 
 # Output Elements
 
 class EGLOutput(OutputElement):
-    def __init__(self, id = None, linkTo = None):
+    def __init__(self, platform, id = None, linkTo = None):
         OutputElement.__init__(self, id, linkTo)
 
-        eglSink = GstElementFactory.element("nveglglessink")
-        if is_aarch64():
-            transform = GstElementFactory.element("nvegltransform")
-            self.addMultiple(transform, eglSink)
+        glSink = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_GL_SINK)
 
-        else:
-            self.add(eglSink)
+        glTransform = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_GL_TRANSFORM)
+        if glTransform:
+            self.add(glTransform)
+
+        self.add(glSink)
 
 class RTSPOuput(OutputElement):
-    def __init__(self, deepLib, bitRate = 1000000, updPort = 12222, name = "rtsp-output", path = "/test", id = None, linkTo = None):        
+    def __init__(self, deepLib, bitRate = 1000000, updPort = 12222, name = "rtsp-output", path = "/test", id = None, linkTo = None):
         OutputElement.__init__(self, id, linkTo)
-        
+
         if not hasattr(deepLib, 'rtspServer'):
             deepLib.rtspServer = RTSPServer()
-            
+
         deepLib.rtspServer.addPath(path)
 
         print("Create RTSP streamp\n")
-        nvvidconv = GstElementFactory.element("nvvideoconvert")
 
-        capsFilter = GstElementFactory.capsFilter("video/x-raw(memory:NVMM), format=I420")
+        vidconv = deepLib.platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_VIDEO_CONVERT)
 
-        h264Encoder = GstElementFactory.element( \
-            "nvv4l2h264enc", \
-            { 
-                "bitrate" : bitRate,
-                "preset-level" : 1,
-                "insert-sps-pps" : 1,
-                "bufapi-version" : 1
-            } \
-        )
+        capsFilter =  deepLib.platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_CAPS_FILTER_I420_RAW)
+
+        h264Encoder = deepLib.platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_ENCODE, { "bitRate" : bitRate })
 
         rtph264Pay = GstElementFactory.element("rtph264pay")
 
@@ -162,20 +159,20 @@ class RTSPOuput(OutputElement):
                 "host" : "127.0.0.1",
                 "port" :  updPort,
                 "async" : False,
-                "sync" : 0
+                "sync" : False
             }
         )
 
-        self.addMultiple(nvvidconv, capsFilter, h264Encoder, rtph264Pay, udpSink)
+        self.addMultiple(vidconv, capsFilter, h264Encoder, rtph264Pay, udpSink)
 
 class TCPOutput(OutputElement):
-    def __init__(self, bitRate = 1000000, port = 8888, id = None, linkTo = None):        
+    def __init__(self, bitRate = 1000000, port = 8888, id = None, linkTo = None):
         OutputElement.__init__(self, id, linkTo)
 
         videoconvert = GstElementFactory.element("videoconvert")
-        
+
         theoraenc = GstElementFactory.element("theoraenc")
-        
+
         oggmux = GstElementFactory.element("oggmux")
 
         tcpserversink = GstElementFactory.element( \
@@ -188,55 +185,8 @@ class TCPOutput(OutputElement):
 
         self.addMultiple(videoconvert, theoraenc, oggmux, tcpserversink)
 
-# Processing Elements:
-class NVInfer(ProcessingElement):
-    def __init__(self, configPath, id = None, linkTo = None):
-        ProcessingElement.__init__(self, id, linkTo)
 
-        pgie = GstElementFactory.element("nvinfer", \
-            { 'config-file-path' : configPath } \
-        )
-        self.add(pgie)
-
-class NVTracker(ProcessingElement):
-    def __init__(self, configPath, id = None, linkTo = None):
-        ProcessingElement.__init__(self, id, linkTo)
-
-        config = configparser.ConfigParser()
-        config.read(configPath)
-        config.sections()
-
-        props = dict()
-        for key in config['tracker']:
-            if key == 'tracker-width' :
-                tracker_width = config.getint('tracker', key)
-                props['tracker-width'] = tracker_width
-            if key == 'tracker-height' :
-                tracker_height = config.getint('tracker', key)
-                props['tracker-height'] = tracker_height
-            if key == 'gpu-id' :
-                tracker_gpu_id = config.getint('tracker', key)
-                props['gpu_id'] = tracker_gpu_id
-            if key == 'll-lib-file' :
-                tracker_ll_lib_file = config.get('tracker', key)
-                props['ll-lib-file'] = tracker_ll_lib_file
-            if key == 'll-config-file' :
-                tracker_ll_config_file = config.get('tracker', key)
-                props['ll-config-file'] = tracker_ll_config_file
-            if key == 'enable-batch-process' :
-                tracker_enable_batch_process = config.getint('tracker', key)
-                props['enable_batch_process'] = tracker_enable_batch_process
-        
-        nvtracker = GstElementFactory.element("nvtracker", props)
-        self.add(nvtracker)
-
-class NVOsd(ProcessingElement):
-    def __init__(self, id = None, linkTo = None):
-        ProcessingElement.__init__(self, id, linkTo)       
-        nvvidconv = GstElementFactory.element("nvvideoconvert")
-        nvosd = GstElementFactory.element("nvdsosd")
-        self.add(nvvidconv)
-        self.add(nvosd, gstProbes = { "sink" : osd_sink_pad_buffer_probe })
+# Processing Elements
 
 class Multiplexer(ProcessingElement):
     def __init__(self, nrOutputs, linkTo, id = None):
