@@ -4,6 +4,8 @@
 import gi
 gi.require_version('Gst', '1.0')
 
+import sys
+
 from gi.repository import GObject, Gst
 
 from PipelineBuilder import *
