@@ -47,13 +47,13 @@ class Pipeline:
         multiplexersOutNrById = dict()        
         for id, fromList in byLink.items():
             if len(fromList) > 1:
-                print(f"multiplexer {id}")
+                print("multiplexer {}".format(id))
                 multiplexersById[id] = Multiplexer(len(fromList), id = "multiplexer-" + id, linkTo = id)
                 multiplexersOutNrById[id] = 0
                 self.elements.append(multiplexersById[id])
                 for nr in range(0, len(fromList)):
                     byId[fromList[nr]]['linkTo'] = multiplexersById[id].outputId(nr)
-                    print(f"   link_multi {fromList[nr]} {byId[fromList[nr]]['linkTo']}")
+                    print("   link_multi {} {}".format(fromList[nr], byId[fromList[nr]]['linkTo']))
 
         # add elements:
         for element in self.elements:               
@@ -62,7 +62,7 @@ class Pipeline:
                 byId[id] = subElement
                 linkTo = subElement['linkTo']
                 gstElement = subElement['gstElement']
-                print(f"add_comp {id} linkto: {linkTo}")	
+                print("add_comp {} linkto: {}".format(id, linkTo))
                 self.pipeline.add(gstElement)
 
         # link:
@@ -75,7 +75,7 @@ class Pipeline:
                 if linkTo:
                     linkToElement = byId[linkTo]
                     last = linkToElement['gstElement']
-                    print(f"link {linkToElement['id']} -> {subElement['id']}")
+                    print("link {} -> {}".format(linkToElement['id'], subElement['id']))
                     #if linkTo in multiplexersById and id in byLink[linkTo]:
                     #    multiplexerOutNr = multiplexersOutNrById[linkTo]
                     #    multiplexersOutNrById[linkTo] += 1
@@ -106,7 +106,7 @@ class Pipeline:
                 gstElement = subElement['gstElement']
                 if subElement['gstProbes']:
                     for pad, probe in subElement['gstProbes'].items():
-                        print(f"add_probe {pad} {probe}")
+                        print("add_probe {} {}".format(pad, probe))
                         pad = gstElement.get_static_pad(pad)
                         pad.add_probe(Gst.PadProbeType.BUFFER, probe, 0)
         

@@ -82,7 +82,7 @@ class FileInput(InputElement):
             decoder = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_DECODE)
 
         else:
-            raise error(f"Unkown encoding {encoding}")
+            raise error("Unkown encoding {}".format("encoding"))
 
         streammux = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_STREAM_MUX)
 

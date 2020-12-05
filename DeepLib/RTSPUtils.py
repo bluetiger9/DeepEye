@@ -45,8 +45,8 @@ class RTSPPipelineFactory(GstRtspServer.RTSPMediaFactory):
         self.encoding = encoding
 
     def do_create_element(self, url):
-        pipeline_str = f"( udpsrc name=pay0 port={self.udpPort} caps=\"application/x-rtp, \
-            media=video, clock-rate=90000, encoding-name={self.encoding}, payload=96\" )"
-        print(f"RTSP pipeline def: {pipeline_str}")
+        pipeline_str = "( udpsrc name=pay0 port={} caps=\"application/x-rtp, \
+            media=video, clock-rate=90000, encoding-name={}, payload=96\" )".format(self.udpPort, self.encoding)
+        print("RTSP pipeline def: {}".format(pipeline_str))
         return Gst.parse_launch(pipeline_str)
 

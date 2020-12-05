@@ -22,7 +22,7 @@ class JsonPipelineConfigLoader:
         return self.pipelineBuilder.build()
 
     def parseElement(self, id, type, properties, connections):
-        print(f"parse element {id} {type} {properties} {connections}")
+        print("parse element {} {} {} {}".format(id, type, properties, connections))
         if type == 'file-input':
             self.pipelineBuilder.withFileInput(id = id, path = properties['path'])
 

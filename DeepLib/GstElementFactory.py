@@ -5,7 +5,7 @@ from DeepLib import *
 
 def checkCreated(element, description):
     if not element:
-        raise error(f"Failed to create Gst {description}")
+        raise error("Failed to create Gst {}".format(description))
     return element
 
 class GstElementFactory:
@@ -18,7 +18,7 @@ class GstElementFactory:
 
     @staticmethod
     def element(type, properties = None):
-        print(f"create_elem {type}: props={properties}")
+        print("create_elem {}: props={}".format(type, properties))
         element = Gst.ElementFactory.make(type)
         if properties:
             for name, value in properties.items():
