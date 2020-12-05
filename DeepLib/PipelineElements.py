@@ -15,6 +15,9 @@ class PipelineElement:
     ELEMENT_TYPE_CAMERA_SOURCE = "camsource"
     ELEMENT_TYPE_GL_SINK = "glsink"
     ELEMENT_TYPE_GL_TRANSFORM = "gltransform"
+    ELEMENT_TYPE_HDMI_SOURCE = "hdmiSource"
+    ELEMENT_TYPE_HDMI_SINK = "hdmiSink"
+    ELEMENT_TYPE_DISPLAYPORT_SINK = "displayPortSink"
 
     _autoNr = 1
 
@@ -107,18 +110,29 @@ class MipiCameraInput(InputElement):
         self.addMultiple(cam, capsFilter)
 
 class USBCameraInput(InputElement):
-    def __init__(self, platform, device = '/dev/video1', id = None, linkTo = None):
+    def __init__(self, platform, device = '/dev/video1', id = None, linkTo = None, encoding = "H264"):
         InputElement.__init__(self, id, linkTo)
 
         # note: tested with Logitech C920
         v4l2src = GstElementFactory.element("v4l2src", { 'device' : device } )
 
-        capsFilter = GstElementFactory.capsFilter( \
-            "video/x-h264, width=1280, height=720, framerate=30/1")
-        h264parse = GstElementFactory.element("h264parse")
-        h264decode = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_DECODE)
+        self.add(v4l2src)
 
-        self.addMultiple(v4l2src, capsFilter, h264parse, h264decode)
+        if encoding is "H264":
+            capsFilter = GstElementFactory.capsFilter( \
+                "video/x-h264, width=1280, height=720, framerate=30/1")
+            h264parse = GstElementFactory.element("h264parse")
+            h264decode = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_H264_DECODE)
+
+            self.addMultiple(capsFilter, h264parse, h264decode)
+
+class HDMIInput(InputElement):
+    def __init__(self, platform, id = None, linkTo = None):
+        InputElement.__init__(self, id, linkTo)
+
+        hdmiInput = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_HDMI_SOURCE)
+
+        self.add(hdmiInput)
 
 # Output Elements
 
@@ -185,6 +199,21 @@ class TCPOutput(OutputElement):
 
         self.addMultiple(videoconvert, theoraenc, oggmux, tcpserversink)
 
+class HDMIOutput(OutputElement):
+    def __init__(self, platform, id = None, linkTo = None):
+        OutputElement.__init__(self, id, linkTo)
+
+        hdmiSink = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_HDMI_SINK)
+
+        self.add(hdmiSink)
+
+class DisplayPortOutput(OutputElement):
+    def __init__(self, platform, id = None, linkTo = None):
+        OutputElement.__init__(self, id, linkTo)
+
+        dpSink = platform.createHwAceleratedElement(PipelineElement.ELEMENT_TYPE_DISPLAY_PORT_SINK)
+
+        self.add(dpSink)
 
 # Processing Elements
 

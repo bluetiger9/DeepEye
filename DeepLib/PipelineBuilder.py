@@ -5,6 +5,7 @@ from DeepLib import *
 from GstElementFactory import *
 from PipelineElements import *
 from Nvidia.NVPipelineElements import *
+from Xilinx.XilinxPipelineElements import *
 from Pipeline import *
 
 class PipelineBuilder:
@@ -23,9 +24,12 @@ class PipelineBuilder:
     def withMipiCameraInput(self, id = None):
         return self.add(MipiCameraInput(id = id))
 
-    def withUsbCameraInput(self, device = '/dev/video1', id = None, linkTo = None):
-        return self.add(USBCameraInput(self.platform, device, id = id))
+    def withUsbCameraInput(self, device = '/dev/video1', id = None, linkTo = None, encoding = "H264"):
+        return self.add(USBCameraInput(self.platform, device, id = id, encoding = encoding))
 
+    def withHdmiInput(self, id = None):
+        return self.add(HDMIInput(self.platform, id = id, linkTo = linkTo))
+    
     def withEGLOutput(self, id = None, linkTo = None):
         return self.add(EGLOutput(self.platform, id = id, linkTo = linkTo))
 
@@ -35,6 +39,13 @@ class PipelineBuilder:
     def withTcpOutput(self, bitRate = 1000000, port = 8888, id = None, linkTo = None):
         return self.add(TCPOutput(bitRate, port, id = id, linkTo = linkTo))
 
+    def withHdmiOutput(self, id = None, linkTo = None):
+        return self.add(HDMIOutput(self.platform, id = id, linkTo = linkTo))
+    
+    def withDisplayPortOutput(self, id = None, linkTo = None):
+        return self.add(DisplayPortOutput(self.platform, id = id, linkTo = linkTo))
+
+    # NVidia specific
     def withNVInfer(self, configPath, id = None, linkTo = None):
         return self.add(NVInfer(configPath, id = id, linkTo = linkTo))
 
@@ -43,6 +54,13 @@ class PipelineBuilder:
 
     def withNVOsd(self, id = None, linkTo = None):
         return self.add(NVOsd(id = id, linkTo = linkTo))
+
+    # Xilinx specific
+    def withXilinxFaceDetect(self, id = None, linkTo = None):
+        return self.add(XilinxFaceDetect(id = id, linkTo = linkTo))
+
+    def withXilinxPersonDetect(self, id = None, linkTo = None):
+        return self.add(XilinxPersonDetect(id = id, linkTo = linkTo))
 
     def build(self):
         return self.pipeline.asGstPipeline()

@@ -1,5 +1,6 @@
 from Platform import Platform
 from GstElementFactory import *
+from PipelineElements import PipelineElement
 
 import sys
 
@@ -22,7 +23,7 @@ class NvidiaPlatform(Platform):
         except ImportError:
             return None
 
-    def createHwAceleratedElement(self, type):
+    def createHwAceleratedElement(self, type, props = {}):
         if type == PipelineElement.ELEMENT_TYPE_H264_DECODE:
             return GstElementFactory.element("nvv4l2decoder")
 
@@ -30,7 +31,7 @@ class NvidiaPlatform(Platform):
             return GstElementFactory.element( \
                 "nvv4l2h264enc", \
                 {
-                    "bitrate" : bitRate,
+                    "bitrate" : props['bitRate'],
                     "preset-level" : 1,
                     "insert-sps-pps" : 1,
                     "bufapi-version" : 1

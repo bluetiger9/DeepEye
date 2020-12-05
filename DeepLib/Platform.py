@@ -7,14 +7,22 @@ class Platform():
 
     @staticmethod
     def create():
+        # Nvidia
         from Nvidia.NVPlatform import NvidiaPlatform
-        nvidia = NvidiaPlatform.tryCreate()
+        nvidia = NvidiaPlatform.tryCreate()       
 
         if nvidia:
             return nvidia
 
-        else:
-            return GenericPlatform.create()
+        # Xilinx
+        from Xilinx.XilinxPlatform import XilinxPlatform
+        xilinx = XilinxPlatform.tryCreate()
+
+        if xilinx:
+            return xilinx
+
+        # Generic
+        return GenericPlatform.create()
 
 # Generic Gstreamer platform
 class GenericPlatform(Platform):
