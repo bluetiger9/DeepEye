@@ -62,6 +62,9 @@ class PipelineBuilder:
     def withXilinxPersonDetect(self, id = None, linkTo = None):
         return self.add(XilinxPersonDetect(id = id, linkTo = linkTo))
 
+    def withSingleShotDetector(self, model, id = None, linkTo = None):
+        return self.add(XilinxSingleShotDetector(model, id = id, linkTo = linkTo))
+
     def build(self):
         return self.pipeline.asGstPipeline()
 

@@ -21,3 +21,12 @@ class XilinxPersonDetect(ProcessingElement):
         videoconvert = GstElementFactory.element("videoconvert")
 
         self.addMultiple(videoconvert, persondetect)
+
+class XilinxSingleShotDetector(ProcessingElement):
+    def __init__(self, model id = None, linkTo = None):
+        ProcessingElement.__init__(self, id, linkTo)
+
+        vaissd = GstElementFactory.element("vaissd", { 'model' : model })
+        videoconvert = GstElementFactory.element("videoconvert")
+
+        self.addMultiple(videoconvert, vaissd)
